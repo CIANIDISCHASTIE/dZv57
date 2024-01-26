@@ -1,0 +1,174 @@
+import pygame
+import time
+import random
+# Инициализация игровой сцены
+n = int(input("Введите размер игрового поля, одно натуральное число >= 3:\n" ))
+z = int(input("0 - если игра 1v1. 1 - если игра с ботом:\n"))
+pygame.init()
+cell_size = 100
+width = cell_size * n
+height = cell_size * n
+screen = pygame.display.set_mode((width, height))
+pygame.display.set_caption("Крестики-нолики")
+
+# Цвета
+BLACK = (0, 0, 0)
+WHITE = (255, 255, 255)
+RED = (255, 0, 0)
+
+# Размеры клеток и сетки
+line_width = 6
+
+# Создание игрового поля (матрицы rows x cols)
+board = [[None for _ in range(n)] for _ in range(n)]
+
+# Флаг для определения, чей ход
+is_x_turn = True
+
+
+# Функция для отрисовки сетки
+def draw_grid():
+    for i in range(n):
+        pygame.draw.line(screen, BLACK, (0, i * cell_size), (width, i * cell_size), line_width)
+    for i in range(n):
+        pygame.draw.line(screen, BLACK, (i * cell_size, 0), (i * cell_size, height), line_width)
+
+# Функция для отрисовки крестика
+def draw_x(row, col):
+    x = col * cell_size + cell_size // 2
+    y = row * cell_size + cell_size // 2
+    offset = cell_size // 3
+    pygame.draw.line(screen, RED, (x - offset, y - offset), (x + offset, y + offset), line_width)
+    pygame.draw.line(screen, RED, (x - offset, y + offset), (x + offset, y - offset), line_width)
+
+# Функция для отрисовки нолика
+def draw_o(row, col):
+    x = col * cell_size + cell_size // 2
+    y = row * cell_size + cell_size // 2
+    radius = cell_size // 3
+    pygame.draw.circle(screen, RED, (x, y), radius, line_width)
+
+# Функция для проверки победителя
+def check_winner():
+    # Проверка строк и столбцов
+    for i in range(n):
+        if all(board[i][j] == "X" for j in range(n)):
+            return "X"
+        if all(board[i][j] == "O" for j in range(n)):
+            return "O"
+        if all(board[j][i] == "X" for j in range(n)):
+            return "X"
+        if all(board[j][i] == "O" for j in range(n)):
+            return "O"
+    # Проверка диагоналей
+    if all(board[i][i] == "X" for i in range(n)):
+        return "X"
+    if all(board[i][i] == "O" for i in range(n)):
+        return "O"
+    if all(board[i][n-i-1] == "X" for i in range(n)):
+        return "X"
+    if all(board[i][n-i-1] == "O" for i in range(n)):
+        return "O"
+    # Ничья
+    if all(board[i][j] is not None for i in range(n) for j in range(n)):
+        return "Ничья"
+    return None
+
+
+def bot_move():
+    empty_cells = []
+    for i in range(n):
+        for j in range(n):
+            if board[i][j] is None:
+                empty_cells.append((i, j))
+    random.shuffle(empty_cells)
+    if empty_cells:
+        row, col = empty_cells[0]
+        board[row][col] = "O"
+        return True
+    return False
+# Основной игровой цикл
+#
+if z == 1:
+    running = True
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if pygame.mouse.get_pressed()[0]:  # Левая кнопка мыши
+                    if check_winner() is None and is_x_turn:
+                        mouse_x, mouse_y = pygame.mouse.get_pos()
+                        row = mouse_y // cell_size
+                        col = mouse_x // cell_size
+                        if board[row][col] is None:
+                            board[row][col] = "X"
+                            is_x_turn = False
+                            bot_moved = bot_move()
+                            if bot_moved:
+                                is_x_turn = True
+
+        screen.fill(WHITE)
+
+        draw_grid()
+
+        for row in range(n):
+            for col in range(n):
+                if board[row][col] == "X":
+                    draw_x(row, col)
+                elif board[row][col] == "O":
+                    draw_o(row, col)
+
+        pygame.display.update()
+        result = check_winner()
+        if result:
+            if result == "X" or result == "O":
+                result = result + " wins"
+            font = pygame.font.SysFont(None, 80)
+            text = font.render(result + '!', True, RED)
+            text_rect = text.get_rect(center=(width // 2, height // 2))
+            screen.blit(text, text_rect)
+            pygame.display.update()
+            time.sleep(3)
+            pygame.display.quit()
+    pygame.quit()
+elif z == 0:
+    running = True
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if pygame.mouse.get_pressed()[0]:  # Левая кнопка мыши
+                    if check_winner() is None:
+                        mouse_x, mouse_y = pygame.mouse.get_pos()
+                        row = mouse_y // cell_size
+                        col = mouse_x // cell_size
+                        if board[row][col] is None:
+                            board[row][col] = "X" if is_x_turn else "O"
+                            is_x_turn = not is_x_turn
+
+        screen.fill(WHITE)
+
+        draw_grid()
+
+        for row in range(n):
+            for col in range(n):
+                if board[row][col] == "X":
+                    draw_x(row, col)
+                elif board[row][col] == "O":
+                    draw_o(row, col)
+
+        pygame.display.update()
+        result = check_winner()
+        if result:
+            if result == "X" or result == "O":
+                result = result + " wins"
+            font = pygame.font.SysFont(None, 80)
+            text = font.render(result + '!', True, RED)
+            text_rect = text.get_rect(center=(width // 2, height // 2))
+            screen.blit(text, text_rect)
+            pygame.display.update()
+            time.sleep(3)
+            pygame.display.quit()
+    pygame.quit()
